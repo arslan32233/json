@@ -6,13 +6,22 @@ function getHighestTemp() {
 
   dataset.stations.forEach((station) => {
     station.observations.forEach((obs) => {
+      const obsDate = new Date(obs.at);
+      if (isNaN(obsDate)) return; 
+
       for (const sensorId in obs.readings) {
         let val = obs.readings[sensorId];
+
         if (val === null || val === undefined) continue;
+
         if (typeof val === "string") val = parseFloat(val);
 
         const sensor = station.sensors.find((s) => s.id === sensorId);
         if (!sensor) continue;
+
+        if (sensor.type !== "temperature") continue;
+
+         
         if (sensor.unit === "F") val = helpers.fToC(val);
         if (sensor.unit === "K") val = helpers.kToC(val);
 
@@ -27,28 +36,59 @@ function getHighestTemp() {
   return { maxTemp, stationId };
 }
 
+
+
 function getInvalidTimestamps() {
-  const result = [];
+  const invalidObs = [];
+
   dataset.stations.forEach((station) => {
     station.observations.forEach((obs) => {
-      if (!helpers.isValidDate(obs.at)) {
-        result.push({ stationId: station.id, observation: obs });
+      const obsDate = new Date(obs.at);
+      if (isNaN(obsDate)) {
+        invalidObs.push({
+          stationId: station.id,
+          observation: obs
+        });
       }
     });
   });
-  return result;
+
+  return invalidObs;
+  
 }
 
 function getDeepestMetadata() {
   let deepest = { level: 0, data: null };
+
+  function findDeepest(obj, level = 1) {
+    let maxLevel = level;
+    let deepestData = obj;
+
+    if (obj && typeof obj === "object") {
+      for (const key in obj) {
+        const val = obj[key];
+        if (val && typeof val === "object") {
+          const { level: childLevel, data: childData } = findDeepest(val, level + 1);
+          if (childLevel > maxLevel) {
+            maxLevel = childLevel;
+            deepestData = childData;
+          }
+        }
+      }
+    }
+
+    return { level: maxLevel, data: deepestData };
+  }
+
   dataset.stations.forEach((station) => {
     station.observations.forEach((obs) => {
       if (obs.meta) {
-        const [lvl, obj] = helpers.findDeepest(obs.meta);
-        if (lvl > deepest.level) deepest = { level: lvl, data: obj };
+        const { level, data } = findDeepest(obs.meta);
+        if (level > deepest.level) deepest = { level, data };
       }
     });
   });
+
   return deepest.data;
 }
 
@@ -102,22 +142,77 @@ function getStationsWithMissingCoords() {
 
 function getForecastTempsC(stationId) {
   const temps = [];
+
   dataset.forecasts.models.forEach((model) => {
     const forecasts = model.stationsForecasts[stationId];
     if (!forecasts) return;
+
     forecasts.forEach((f) => {
-      let high = f.tempHigh;
-      let low = f.tempLow;
-      temps.push({ day: f.day, highC: high, lowC: low });
+      if (f.tempHigh !== undefined && f.tempLow !== undefined) {
+        temps.push({ day: f.day, highC: f.tempHigh, lowC: f.tempLow });
+      }
+
+      if (f.candidates && Array.isArray(f.candidates)) {
+        f.candidates.forEach((c) => {
+          let highC = c.tempHigh;
+          let lowC = c.tempLow;
+
+          const sensorUnit = dataset.units.temperature; 
+          if (c.unit === "F") highC = helpers.fToC(highC);
+          if (c.unit === "F") lowC = helpers.fToC(lowC);
+          if (c.unit === "K") highC = helpers.kToC(highC);
+          if (c.unit === "K") lowC = helpers.kToC(lowC);
+
+          temps.push({ day: f.day, highC, lowC });
+        });
+      }
     });
   });
+
   return temps;
 }
 
+
 function getUnitMismatchObservations() {
-  return dataset.anomaliesIndex.unitMismatches;
-  
+  const mismatches = [];
+
+  dataset.stations.forEach((station) => {
+    station.observations.forEach((obs) => {
+      for (const sensorId in obs.readings) {
+        const sensor = station.sensors.find((s) => s.id === sensorId);
+        if (!sensor) continue;
+
+        const expectedUnit = dataset.units[sensor.type];
+        let readingUnit = sensor.unit;
+
+        if (obs.meta && obs.meta.units && obs.meta.units[sensor.type]) {
+          readingUnit = obs.meta.units[sensor.type];
+        }
+
+        if (readingUnit !== expectedUnit) {
+          mismatches.push({
+            stationId: station.id,
+            sensorId: sensor.id,
+            at: obs.at,
+            expected: expectedUnit,
+            found: readingUnit
+          });
+        }
+      }
+    });
+  });
+  dataset.forecasts.models.forEach((model) => {
+    for (const stationId in model.stationsForecasts) {
+      const forecasts = model.stationsForecasts[stationId];
+      forecasts.forEach((f) => {
+       
+      });
+    }
+  });
+
+  return mismatches;
 }
+
 
 function getNowcastHorizon() {
   let allTemps = [];

@@ -2,8 +2,10 @@ const queries = require("./queries");
 
 console.log("1. Highest Temperature:", queries.getHighestTemp());
 
-console.log("2. Invalid Timestamps:", queries.getInvalidTimestamps());
-
+console.log(
+  "2. Invalid Timestamps:",
+  JSON.stringify(queries.getInvalidTimestamps(), null, 2)
+);
 console.log("3. Deepest Metadata:", queries.getDeepestMetadata());
 
 console.log("4. Largest Wind Reading:", queries.getWindSpike());
