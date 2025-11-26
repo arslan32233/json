@@ -1,0 +1,357 @@
+{
+  "meta": {
+    "generatedAt": "2025-11-25T08:00:00Z",
+    "version": "4.0-anomalies",
+    "source": "deep-weather-grid",
+    "notes": [
+      "deep-nesting",
+      "mixed-units",
+      "duplicate-sensors",
+      "outliers",
+      "sparse-observations",
+      "map-as-array-structures"
+    ]
+  },
+  "units": {
+    "temperature": "C",
+    "windSpeed": "m/s",
+    "precipitation": "mm"
+  },
+  "stations": [
+    {
+      "id": "st-900",
+      "name": "Central Deep Station",
+      "coords": { "lat": 33.6844, "lon": 73.0479 },
+      "timezone": "Asia/Karachi",
+      "elevationM": 540,
+      "sensors": [
+        { "id": "s-900-t1", "type": "temperature", "unit": "C", "model": "T-Deep", "installedAt": "2020-01-01" },
+        { "id": "s-900-t1-dup", "type": "temperature", "unit": "C", "model": "T-Deep-Alt", "installedAt": "2021-03-05" },
+        { "id": "s-900-w1", "type": "wind", "unit": "km/h", "model": "WindMega", "installedAt": "2019-07-20" },
+        { "id": "s-900-r1", "type": "precipitation", "unit": "in", "model": "RainOld", "installedAt": "2018-05-10" }
+      ],
+      "observations": [
+        {
+          "at": "2025-11-22T00:00:00+05:00",
+          "readings": {
+            "s-900-t1": 18.2,
+            "s-900-w1": 12.4,
+            "s-900-r1": 0
+          }
+        },
+        {
+          "at": "2025-11-22T01:00:00+05:00",
+          "readings": {
+            "s-900-t1": 17.9,
+            "s-900-w1": 11.2,
+            "s-900-r1": 1.5
+          }
+        },
+        {
+          "at": "2025-11-22T01:00:00+05:00",
+          "readings": {
+            "s-900-t1-dup": 18.05,
+            "s-900-w1": 11.3
+          },
+          "meta": { "duplicate_of": "obs-2025-11-22T01:00:00", "confidence": 0.6 }
+        },
+        {
+          "at": "2025-11-22T02:00:00+05:00",
+          "readings": {
+            "s-900-w1": 10.1
+          }
+        },
+        {
+          "at": "2025-11-22T03:00:00+05:00",
+          "readings": {
+            "s-900-t1": 64.4
+          },
+          "meta": { "units": { "temperature": "F" }, "note": "legacy-F-sensor" }
+        },
+        {
+          "at": "2025-11-22T04:00:00+05:00",
+          "readings": {
+            "s-900-t1": 121.0,
+            "s-900-w1": 150.0
+          },
+          "meta": { "note": "extreme-spike", "flag": "anomaly" }
+        },
+        {
+          "at": "2025-11-22T05:00:00+05:00",
+          "readings": {
+            "s-900-t1": null,
+            "s-900-w1": null,
+            "s-900-r1": null
+          },
+          "meta": { "note": "sensor-restart" }
+        },
+        {
+          "at": "2025-11-22T06:00:00+05:00",
+          "readings": {
+            "s-900-t1": 18.0,
+            "s-900-w1": "11.0",
+            "s-900-r1": 0.0
+          }
+        },
+        {
+          "at": "2025-11-22T07:00:00+05:00",
+          "readings": {
+            "s-900-t1": 17.7,
+            "s-900-w1": 10.8,
+            "s-900-r1": 0.2
+          },
+          "meta": {
+            "deep": [
+              [
+                { "qc": "v1", "notes": ["ok", "checked"] },
+                [
+                  { "nested": [{ "lvl": 3, "info": { "a": 1 } }], "arr": [1, 2, [3, 4, { "x": "y" }]] }
+                ]
+              ]
+            ]
+          }
+        },
+        {
+          "at": "2025-11-22T08:00:00+05:00",
+          "readings": {
+            "s-900-t1": 17.3,
+            "s-900-w1": 9.9,
+            "s-900-r1": 0.0
+          }
+        }
+      ],
+      "dailySummaries": {
+        "2025-11-21": {
+          "maxTemp": 22.0,
+          "minTemp": 14.2,
+          "precipitation": { "amount": 0.0, "unit": "mm" }
+        },
+        "2025-11-22": {
+          "maxTemp": 20.5,
+          "minTemp": 12.1,
+          "precipitation": { "amount": 0.09, "unit": "in" }
+        }
+      },
+      "maintenance": [
+        {
+          "period": { "start": "2025-11-15", "end": "2025-11-16" },
+          "actions": [
+            { "who": "tech-A", "action": "calibration", "details": { "sensors": ["s-900-t1"], "offsetC": 0.3 } }
+          ]
+        },
+        {
+          "period": { "start": "2025-10-01", "end": "2025-10-02" },
+          "actions": [
+            { "who": "tech-B", "action": "firmware-update", "details": { "sensors": ["s-900-w1"], "version": "2.1.4" } }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "st-901",
+      "name": "Nested Network Station",
+      "coords": { "lat": 33.9, "lon": 72.8 },
+      "timezone": "Asia/Karachi",
+      "elevationM": 620,
+      "sensors": [
+        { "id": "s-901-t1", "type": "temperature", "unit": "K", "model": "ThermoK" },
+        { "id": "s-901-w1", "type": "wind", "unit": "mph", "model": "WindOld" },
+        { "id": "s-901-r1", "type": "precipitation", "unit": "mm", "model": "RainNew" }
+      ],
+      "observations": [
+        {
+          "at": "2025-11-22T00:15:00+05:00",
+          "readings": {
+            "s-901-t1": 292.15,
+            "s-901-w1": 6.2,
+            "s-901-r1": 0
+          }
+        },
+        {
+          "at": "2025-11-22T01:15:00+05:00",
+          "readings": {
+            "s-901-t1": 291.75,
+            "s-901-w1": 6.7
+          },
+          "meta": {
+            "nestedRecord": {
+              "levels": [
+                { "a": 1 },
+                { "b": [1, 2, { "c": [3, 4, { "d": "deep" }] }] },
+                [
+                  [
+                    { "ultra": { "x": 1, "y": [ { "z": "end" } ] } }
+                  ]
+                ]
+              ]
+            }
+          }
+        }
+      ],
+      "dailySummaries": {}
+    },
+    {
+      "id": "st-902",
+      "name": "Sparse Outlier Station",
+      "coords": { "lat": 34.2, "lon": 72.1 },
+      "timezone": "UTC",
+      "elevationM": 180,
+      "sensors": [
+        { "id": "s-902-t1", "type": "temperature", "unit": "F", "model": "OldF" },
+        { "id": "s-902-r1", "type": "precipitation", "unit": "in", "model": "RainOld2" }
+      ],
+      "observations": [
+        {
+          "at": "2025-11-20T23:00:00Z",
+          "readings": {
+            "s-902-t1": 75.2,
+            "s-902-r1": 0.02
+          }
+        },
+        {
+          "at": "not-a-date",
+          "readings": {
+            "s-902-t1": 9999,
+            "s-902-r1": -1
+          },
+          "meta": { "note": "corrupt-timestamp" }
+        }
+      ],
+      "dailySummaries": {
+        "2025-11-20": {
+          "maxTemp": 24.8,
+          "minTemp": 14.5,
+          "precipitation": { "amount": 0.02, "unit": "in" }
+        }
+      }
+    }
+  ],
+  "forecasts": {
+    "models": [
+      {
+        "id": "gfs-deep",
+        "name": "GFS-Deep",
+        "generatedAt": "2025-11-22T00:00:00Z",
+        "leadDays": [0, 1, 2, 3, 4, 5],
+        "stationsForecasts": {
+          "st-900": [
+            {
+              "day": "2025-11-22",
+              "tempHigh": 20.0,
+              "tempLow": 12.0,
+              "precipProb": 0.15,
+              "windKmh": 18,
+              "meta": { "modelConfidence": 0.8 }
+            },
+            {
+              "day": "2025-11-23",
+              "tempHigh": 21.0,
+              "tempLow": 13.2,
+              "precipProb": 0.05,
+              "windKmh": 12
+            }
+          ],
+          "st-901": [
+            {
+              "day": "2025-11-22",
+              "tempHigh": 19.2,
+              "tempLow": 11.5,
+              "precipProb": 0.25,
+              "windMps": 3.1
+            }
+          ]
+        }
+      },
+      {
+        "id": "ensemble-deep",
+        "name": "Ensemble-Deep",
+        "generatedAt": "2025-11-22T03:00:00Z",
+        "leadDays": [0, 1, 2],
+        "stationsForecasts": {
+          "st-900": [
+            {
+              "day": "2025-11-22",
+              "candidates": [
+                { "model": "gfs-deep", "tempHigh": 20.0, "tempLow": 12.0, "weight": 0.6 },
+                { "model": "ecmwf-deep", "tempHigh": 19.0, "tempLow": 11.8, "weight": 0.4 }
+              ],
+              "meta": { "fusionMethod": "weighted-mean" }
+            }
+          ]
+        }
+      }
+    ],
+    "nowcasts": [
+      {
+        "stationId": "st-900",
+        "generatedAt": "2025-11-22T03:15:00+05:00",
+        "horizonMinutes": 180,
+        "values": [
+          { "in": 0, "tempC": 18.6, "precipMm": 0 },
+          { "in": 60, "tempC": 18.3, "precipMm": 0.4 },
+          { "in": 120, "tempC": 18.0, "precipMm": 0.6 }
+        ]
+      }
+    ]
+  },
+  "events": [
+    {
+      "id": "ev-deep-1",
+      "stationId": "st-900",
+      "type": "heatwave",
+      "start": "2025-06-01",
+      "end": "2025-06-06",
+      "avgMaxC": 43.1,
+      "notes": { "reportedBy": "climatology-team", "severity": "high" }
+    },
+    {
+      "id": "ev-deep-2",
+      "stationId": "st-902",
+      "type": "data-corruption",
+      "start": "2025-11-20",
+      "end": "2025-11-21",
+      "details": { "reason": "timestamp-corruption", "affectedObservations": [ "2025-11-20T23:00:00Z", "not-a-date" ] }
+    }
+  ],
+  "regions": [
+    [ "central", { "name": "Central Complex", "stations": [ "st-900", "st-901" ] } ],
+    [ "outer", { "name": "Outer Ring", "stations": [ "st-902" ] } ]
+  ],
+  "calibrations": [
+    { "sensorId": "s-900-t1", "date": "2025-05-01", "offsetC": 0.3 },
+    { "sensorId": "s-900-t1", "date": "2025-09-01", "offsetC": -0.1 },
+    { "sensorId": "s-901-t1", "date": "2025-06-01", "scale": 1.0002 },
+    { "sensorId": "s-902-t1", "date": "2024-12-01", "offsetF": -0.5 }
+  ],
+  "anomaliesIndex": {
+    "duplicateSensors": [ "s-900-t1", "s-900-t1-dup" ],
+    "invalidTimestamps": [ "not-a-date" ],
+    "unitMismatches": [ { "stationId": "st-900", "sensorId": "s-900-r1", "expected": "mm", "found": "in" } ],
+    "outlierReadings": [
+      { "stationId": "st-900", "at": "2025-11-22T04:00:00+05:00", "reading": { "s-900-t1": 121.0 } }
+    ]
+  },
+  "metadataExtras": {
+    "ingest": {
+      "sources": [
+        { "name": "station-push", "latencySec": 15 },
+        { "name": "batch-upload", "latencySec": 3600 }
+      ],
+      "pipeline": [
+        "ingest",
+        "qc",
+        "calibration",
+        "aggregate",
+        { "deepAudit": [ "step1", { "step2": [ "a", "b", { "c": "deep" } ] } ] }
+      ]
+    },
+    "versioning": {
+      "schema": { "major": 4, "minor": 0, "patch": "anomalies" },
+      "history": [
+        { "v": "3.0", "notes": "stable" },
+        { "v": "4.0-anomalies", "notes": "deep nesting & anomaly fields added" }
+      ]
+    }
+  }
+}
+
