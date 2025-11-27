@@ -6,8 +6,7 @@ function getHighestTemp() {
 
   dataset.stations.forEach((station) => {
     station.observations.forEach((obs) => {
-      const obsDate = new Date(obs.at);
-      if (isNaN(obsDate)) return; 
+      if (isNaN(new Date(obs.at))) return;
 
       for (const sensorId in obs.readings) {
         let val = obs.readings[sensorId];
@@ -15,15 +14,15 @@ function getHighestTemp() {
         if (val === null || val === undefined) continue;
 
         if (typeof val === "string") val = parseFloat(val);
+        if (isNaN(val)) continue;
 
         const sensor = station.sensors.find((s) => s.id === sensorId);
-        if (!sensor) continue;
+        if (!sensor || sensor.type !== "temperature") continue;
 
-        if (sensor.type !== "temperature") continue;
+        if (sensor.unit === "F") val = (val - 32) * (5 / 9);
+        if (sensor.unit === "K") val = val - 273.15;
 
-         
-        if (sensor.unit === "F") val = helpers.fToC(val);
-        if (sensor.unit === "K") val = helpers.kToC(val);
+        if (val < -50 || val > 60) continue;
 
         if (val > maxTemp) {
           maxTemp = val;
@@ -36,16 +35,14 @@ function getHighestTemp() {
   return { maxTemp, stationId };
 }
 
-
-
 function getInvalidTimestamps() {
-  const invalidObs = [];
+  const invalid = [];
 
   dataset.stations.forEach((station) => {
     station.observations.forEach((obs) => {
       const obsDate = new Date(obs.at);
       if (isNaN(obsDate)) {
-        invalidObs.push({
+        invalid.push({
           stationId: station.id,
           observation: obs
         });
@@ -53,9 +50,9 @@ function getInvalidTimestamps() {
     });
   });
 
-  return invalidObs;
-  
+  return invalid;
 }
+
 
 function getDeepestMetadata() {
   let deepest = { level: 0, data: null };
@@ -93,20 +90,32 @@ function getDeepestMetadata() {
 }
 
 function getWindSpike() {
-  let spike = { value: -Infinity, timestamp: null };
+  let spike = { value: -Infinity, timestamp: null, sid: null, station: null };
+
   dataset.stations.forEach((station) => {
     station.observations.forEach((obs) => {
       for (const sensorId in obs.readings) {
         const sensor = station.sensors.find((s) => s.id === sensorId);
         if (!sensor || sensor.type !== "wind") continue;
+
         let val = obs.readings[sensorId];
         if (typeof val === "string") val = parseFloat(val);
-        if (val > spike.value) spike = { value: val, timestamp: obs.at };
+
+        if (val > spike.value) {
+          spike = {
+            value: val,
+            timestamp: obs.at,
+            sid: sensorId,
+            station: station.id
+          };
+        }
       }
     });
   });
+
   return spike;
 }
+
 
 function getDuplicateSensors() {
   return dataset.anomaliesIndex.duplicateSensors;
@@ -114,22 +123,40 @@ function getDuplicateSensors() {
 
 function getPrecipTotals() {
   const totals = {};
+
   dataset.stations.forEach((station) => {
-    let sum = 0;
+    let total = 0;
+
     station.observations.forEach((obs) => {
+      if (isNaN(new Date(obs.at))) return;
+
       for (const sensorId in obs.readings) {
         const sensor = station.sensors.find((s) => s.id === sensorId);
         if (!sensor || sensor.type !== "precipitation") continue;
+
         let val = obs.readings[sensorId];
         if (val === null || val === undefined) continue;
-        if (sensor.unit === "in") val = helpers.inToMm(val);
-        sum += val;
+
+        if (typeof val === "string") val = parseFloat(val);
+
+        if (val < 0) continue;
+
+        
+        if (sensor.unit === "in") val *= 25.4;
+        if (sensor.unit === "mm") val *= 1;
+
+        total += val;
       }
     });
-    totals[station.id] = sum;
+
+    totals[station.id] = parseFloat(total.toFixed(2)); 
   });
+
   return totals;
 }
+
+
+
 
 function getStationsWithMissingCoords() {
   return dataset.stations
@@ -139,38 +166,47 @@ function getStationsWithMissingCoords() {
       latestReadings: station.observations.slice(-1)[0]?.readings || {},
     }));
 }
+function getForecastTempsC() {
+  const result = [];
 
-function getForecastTempsC(stationId) {
-  const temps = [];
+  dataset.stations.forEach((station) => {
+    const stationId = station.id;
 
-  dataset.forecasts.models.forEach((model) => {
-    const forecasts = model.stationsForecasts[stationId];
-    if (!forecasts) return;
+    dataset.forecasts.models.forEach((model) => {
+      const forecasts = model.stationsForecasts[stationId];
+      if (!forecasts) return;
 
-    forecasts.forEach((f) => {
-      if (f.tempHigh !== undefined && f.tempLow !== undefined) {
-        temps.push({ day: f.day, highC: f.tempHigh, lowC: f.tempLow });
-      }
+      forecasts.forEach((f) => {
+        let high = f.tempHigh;
+        let low = f.tempLow;
 
-      if (f.candidates && Array.isArray(f.candidates)) {
-        f.candidates.forEach((c) => {
-          let highC = c.tempHigh;
-          let lowC = c.tempLow;
+        if (high != null) {
+          if (f.tempHighUnit === "F") high = (high - 32) * (5 / 9);
+          if (f.tempHighUnit === "K") high = high - 273.15;
+        }
 
-          const sensorUnit = dataset.units.temperature; 
-          if (c.unit === "F") highC = helpers.fToC(highC);
-          if (c.unit === "F") lowC = helpers.fToC(lowC);
-          if (c.unit === "K") highC = helpers.kToC(highC);
-          if (c.unit === "K") lowC = helpers.kToC(lowC);
+        if (low != null) {
+          if (f.tempLowUnit === "F") low = (low - 32) * (5 / 9);
+          if (f.tempLowUnit === "K") low = low - 273.15;
+        }
 
-          temps.push({ day: f.day, highC, lowC });
+        result.push({
+          stationId,
+          modelId: model.id,
+          day: f.day,
+          highC: high,
+          lowC: low,
         });
-      }
+      });
     });
   });
 
-  return temps;
+  return result;
 }
+
+
+
+
 
 
 function getUnitMismatchObservations() {
@@ -182,36 +218,44 @@ function getUnitMismatchObservations() {
         const sensor = station.sensors.find((s) => s.id === sensorId);
         if (!sensor) continue;
 
-        const expectedUnit = dataset.units[sensor.type];
-        let readingUnit = sensor.unit;
-
-        if (obs.meta && obs.meta.units && obs.meta.units[sensor.type]) {
-          readingUnit = obs.meta.units[sensor.type];
+        let expectedUnit;
+        switch (sensor.type) {
+          case "temperature":
+            expectedUnit = "C";
+            break;
+          case "rain":
+          case "precipitation":
+            expectedUnit = "mm";
+            break;
+          case "wind":
+            expectedUnit = "m/s"; 
+            break;
+          default:
+            expectedUnit = undefined;
         }
 
-        if (readingUnit !== expectedUnit) {
+        let foundUnit = sensor.unit;
+        if (obs.meta && obs.meta.units && obs.meta.units[sensor.type]) {
+          foundUnit = obs.meta.units[sensor.type];
+        }
+
+        if (expectedUnit !== foundUnit) {
           mismatches.push({
             stationId: station.id,
             sensorId: sensor.id,
             at: obs.at,
             expected: expectedUnit,
-            found: readingUnit
+            found: foundUnit
           });
         }
       }
     });
   });
-  dataset.forecasts.models.forEach((model) => {
-    for (const stationId in model.stationsForecasts) {
-      const forecasts = model.stationsForecasts[stationId];
-      forecasts.forEach((f) => {
-       
-      });
-    }
-  });
 
   return mismatches;
 }
+
+
 
 
 function getNowcastHorizon() {
